@@ -15,18 +15,18 @@ fn main() -> Result<(), Error> {
   }
 
   match &args[1][..] {
-    "create" => {
+    "create" | "new" | "n" => {
       for i in 2..args.len() {
         File::create(format!("src/bin/{}.rs", &args[i]))?;
       }
     }
-    "commit" => {
+    "commit" | "c" => {
       Command::new("sh").arg("-c").arg(format!(
         "git add ./src/bin/{}.rs && git commit -m \"{}\"",
         &args[2], &args[2]
       ));
     }
-    "exec" => {
+    "exec" | "e" => {
       let mut child = Command::new("sh")
         .arg("-c")
         .arg(format!("cargo run --bin {}", &args[2]))
