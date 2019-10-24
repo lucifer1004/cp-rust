@@ -20,6 +20,12 @@ fn main() -> Result<(), Error> {
         File::create(format!("src/bin/{}.rs", &args[i]))?;
       }
     }
+    "commit" => {
+      Command::new("sh").arg("-c").arg(format!(
+        "git add ./src/bin/{}.rs && git commit -m \"{}\"",
+        &args[2], &args[2]
+      ));
+    }
     "exec" => {
       let mut child = Command::new("sh")
         .arg("-c")
