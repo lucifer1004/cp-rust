@@ -1,6 +1,6 @@
 [package]
 name = "cp-rust"
-version = "0.1.0"
+version = "0.0.1"
 authors = ["Gabriel Wu <wuzihua@pku.edu.cn>"]
 edition = "2018"
 default-run = "cp-rust"

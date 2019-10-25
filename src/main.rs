@@ -6,7 +6,7 @@ use clap::Clap;
 
 /// Handy commands for competitive programming in rust.
 #[derive(Clap)]
-#[clap(version = "0.0.1", author = "Gabriel Wu <wuzihua@pku.edu.cn>")]
+#[clap()]
 struct Opts {
   #[clap(subcommand)]
   subcmd: SubCommand,
@@ -17,8 +17,8 @@ enum SubCommand {
   /// Create a new source file from a template file.
   #[clap(name = "new")]
   New {
-    /// Name of the file to be created.
-    file_name: String,
+    /// Names of the files to be created.
+    file_names: Vec<String>,
     /// Select template to use.
     #[clap(short = "t", default_value = "default")]
     template: String,
@@ -47,13 +47,15 @@ fn main() -> Result<(), Error> {
 
   match opts.subcmd {
     SubCommand::New {
-      file_name,
+      file_names,
       template,
     } => {
-      fcopy(
-        format!("src/templates/{}.rs", template),
-        format!("src/bin/{}.rs", file_name),
-      )?;
+      for file_name in file_names {
+        fcopy(
+          format!("src/templates/{}.rs", template),
+          format!("src/bin/{}.rs", file_name),
+        )?;
+      }
     }
 
     SubCommand::Exec {
@@ -73,6 +75,7 @@ fn main() -> Result<(), Error> {
 
       println!("{}", String::from_utf8(output.stdout).unwrap());
     }
+
     SubCommand::Commit { file_name } => {
       Command::new("sh").arg("-c").arg(format!(
         "git add ./src/bin/{}.rs && git commit -m \"{}\"",
