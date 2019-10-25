@@ -1,69 +1,83 @@
-use std::env;
-use std::fs::File;
+use std::fs::{copy as fcopy, File};
 use std::io::{copy, Error};
 use std::process::{Command, Stdio};
 
-fn show_warning() {
-  print!(
-    r#"
-  You should enter a valid command!
-  Available commands: create|[n]ew|[c]ommit|[e]xec|[h]elp
-    "#
-  );
+use clap::Clap;
+
+/// Handy commands for competitive programming in rust.
+#[derive(Clap)]
+#[clap(version = "0.0.1", author = "Gabriel Wu <wuzihua@pku.edu.cn>")]
+struct Opts {
+  #[clap(subcommand)]
+  subcmd: SubCommand,
 }
 
-fn show_help() {
-  println!(
-    r#"
-  Usage:
-  create|new|n [file1] [file2] [...]: create new files
-  commit|c [file]: git add and commit a file
-  exec|e [file]: exec a file
-  help|h: show help message
-  "#
-  );
+#[derive(Clap)]
+enum SubCommand {
+  /// Create a new source file from a template file.
+  #[clap(name = "new")]
+  New {
+    /// Name of the file to be created.
+    file_name: String,
+    /// Select template to use.
+    #[clap(short = "t", default_value = "default")]
+    template: String,
+  },
+
+  /// Execute a program with an input file.
+  #[clap(name = "exec")]
+  Exec {
+    /// Name of the file to be executed.
+    file_name: String,
+    /// Select test input.
+    #[clap(short = "t", default_value = "test.in")]
+    test_file: String,
+  },
+
+  /// Add and commit a source file.
+  #[clap(name = "commit")]
+  Commit {
+    /// Name of the file to be added and created.
+    file_name: String,
+  },
 }
 
 fn main() -> Result<(), Error> {
-  let args: Vec<String> = env::args().collect();
-  if args.len() < 2 {
-    show_warning();
-    show_help();
-    return Ok(());
-  }
+  let opts: Opts = Opts::parse();
 
-  match &args[1][..] {
-    "create" | "new" | "n" => {
-      for i in 2..args.len() {
-        File::create(format!("src/bin/{}.rs", &args[i]))?;
-      }
+  match opts.subcmd {
+    SubCommand::New {
+      file_name,
+      template,
+    } => {
+      fcopy(
+        format!("src/templates/{}.rs", template),
+        format!("src/bin/{}.rs", file_name),
+      )?;
     }
-    "commit" | "c" => {
-      Command::new("sh").arg("-c").arg(format!(
-        "git add ./src/bin/{}.rs && git commit -m \"{}\"",
-        &args[2], &args[2]
-      ));
-    }
-    "exec" | "e" => {
+
+    SubCommand::Exec {
+      file_name,
+      test_file,
+    } => {
       let mut child = Command::new("sh")
         .arg("-c")
-        .arg(format!("cargo run --bin {}", &args[2]))
+        .arg(format!("cargo run --bin {}", file_name))
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
         .spawn()?;
 
-      let input_path = "test.in";
-
-      let mut file = File::open(input_path).ok().expect("failed to open file");
+      let mut file = File::open(test_file).ok().expect("failed to open file");
       copy(&mut file, child.stdin.as_mut().unwrap())?;
       let output = child.wait_with_output().unwrap();
 
       println!("{}", String::from_utf8(output.stdout).unwrap());
     }
-    "help" | "h" => show_help(),
-    _ => {
-      show_warning();
-      show_help();
+    SubCommand::Commit { file_name } => {
+      Command::new("sh").arg("-c").arg(format!(
+        "git add ./src/bin/{}.rs && git commit -m \"{}\"",
+        file_name, file_name
+      ));
     }
   }
 
