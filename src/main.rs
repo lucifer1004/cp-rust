@@ -3,13 +3,31 @@ use std::fs::File;
 use std::io::{copy, Error};
 use std::process::{Command, Stdio};
 
+fn show_warning() {
+  print!(
+    r#"
+  You should enter a valid command!
+  Available commands: create|[n]ew|[c]ommit|[e]xec|[h]elp
+    "#
+  );
+}
+
 fn show_help() {
-  println!("Usage:\ncreate [file]: create a new file\nexec [file]: exec a file");
+  println!(
+    r#"
+  Usage:
+  create|new|n [file1] [file2] [...]: create new files
+  commit|c [file]: git add and commit a file
+  exec|e [file]: exec a file
+  help|h: show help message
+  "#
+  );
 }
 
 fn main() -> Result<(), Error> {
   let args: Vec<String> = env::args().collect();
-  if args.len() <= 2 {
+  if args.len() < 2 {
+    show_warning();
     show_help();
     return Ok(());
   }
@@ -42,7 +60,11 @@ fn main() -> Result<(), Error> {
 
       println!("{}", String::from_utf8(output.stdout).unwrap());
     }
-    _ => show_help(),
+    "help" | "h" => show_help(),
+    _ => {
+      show_warning();
+      show_help();
+    }
   }
 
   Ok(())
