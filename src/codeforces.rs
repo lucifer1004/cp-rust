@@ -1,20 +1,84 @@
-use std::{env, fs, thread, time};
+use std::{collections::HashMap, env, error::Error, fs, thread, time};
 
-use fantoccini::{Client, Locator};
+use data_encoding::HEXUPPER;
+use fantoccini::Locator;
+use rand::distributions::Alphanumeric;
+use rand::prelude::*;
+use reqwest;
+use ring::digest::{Context, SHA512};
+use serde::{Deserialize, Serialize};
 
-#[derive(Clone)]
-pub struct CF {
-  client: Option<Client>,
+use crate::webdriver::Session;
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct User {
+  handle: String,
+  email: Option<String>,
+  vk_id: Option<String>,
+  open_id: Option<String>,
+  first_name: Option<String>,
+  last_name: Option<String>,
+  country: Option<String>,
+  city: Option<String>,
+  organization: Option<String>,
+  contribution: i32,
+  rank: String,
+  rating: i32,
+  max_rank: String,
+  max_rating: i32,
+  last_online_time_seconds: u64,
+  registration_time_seconds: u64,
+  friend_of_count: u64,
+  avatar: String,
+  title_photo: String,
 }
 
-impl CF {
-  pub async fn login(&mut self) -> Result<(), fantoccini::error::CmdError> {
-    self.client = Some(
-      Client::new("http://localhost:4444")
-        .await
-        .expect("failed to connect to WebDriver"),
-    );
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct Problem {
+  contest_id: Option<u32>,
+  problemset_name: Option<String>,
+  index: String,
+  name: String,
+  r#type: String,
+  points: Option<f64>,
+  rating: Option<u32>,
+  phones: Option<Vec<String>>,
+  tags: Option<Vec<String>>,
+}
 
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ProblemStatistics {
+  contest_id: Option<u32>,
+  index: String,
+  solved_count: u32,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ProblemQueryResult {
+  problems: Vec<Problem>,
+  problem_statistics: Vec<ProblemStatistics>,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct ProblemQueryResponse {
+  status: String,
+  result: ProblemQueryResult,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct UserQueryResponse {
+  status: String,
+  result: Vec<User>,
+}
+
+impl Session {
+  pub async fn login(&mut self) -> Result<(), fantoccini::error::CmdError> {
     if let Some(ref mut c) = self.client {
       c.goto("https://codeforces.com/enter").await?;
 
@@ -59,6 +123,76 @@ impl CF {
   }
 }
 
-pub fn create_client() -> CF {
-  CF { client: None }
+pub fn get_problemset_problems(
+  tags: Option<String>,
+  problemset_name: Option<String>,
+) -> Result<(), Box<dyn Error>> {
+  let query = "https://codeforces.com/api/problemset.problems";
+  let mut params = HashMap::new();
+  if let Some(tags) = tags {
+    params.insert("tags", tags);
+  }
+  if let Some(problemset_name) = problemset_name {
+    params.insert("problemsetName", problemset_name);
+  }
+
+  let client = reqwest::Client::new();
+
+  let resp: ProblemQueryResponse = client.get(query).form(&params).send()?.json()?;
+
+  println!("{:?}", resp);
+  Ok(())
+}
+
+pub fn get_user_info(handles: &str) -> Result<(), Box<dyn Error>> {
+  let resp: UserQueryResponse = reqwest::get(&format!(
+    "https://codeforces.com/api/user.info?handles={}",
+    handles
+  ))?
+  .json()?;
+  println!("{:?}", resp);
+  Ok(())
+}
+
+pub fn sign(method: String) -> String {
+  let cf_key = env::var("CODEFORCES_API_KEY").unwrap();
+  let cf_secret = env::var("CODEFORCES_API_SECRET").unwrap();
+  let rng = rand::thread_rng();
+  let rand_string: String = rng.sample_iter(Alphanumeric).take(6).collect();
+  let current_time = time::SystemTime::now()
+    .duration_since(time::UNIX_EPOCH)
+    .expect("failed to get system time");
+  let raw = format!(
+    "{}/{}?apiKey={}&time={:?}#{}",
+    &rand_string,
+    &method,
+    &cf_key,
+    current_time.as_secs(),
+    &cf_secret
+  );
+
+  let mut context = Context::new(&SHA512);
+  context.update(raw.as_bytes());
+  let hash = HEXUPPER.encode(context.finish().as_ref());
+  format!(
+    "https://codeforces.com/api/{}?apiKey={}&time={:?}&apiSig={}{}",
+    &method,
+    &cf_key,
+    current_time.as_secs(),
+    &rand_string,
+    &hash
+  )
+}
+
+#[cfg(test)]
+mod tests {
+  use super::*;
+  use dotenv::dotenv;
+
+  #[test]
+  fn test_sign() {
+    dotenv().ok();
+    let digest = sign("problemset.problems".to_string());
+    println!("{:?}", digest);
+  }
 }

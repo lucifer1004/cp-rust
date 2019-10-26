@@ -1,4 +1,3 @@
-use std::env;
 use std::fs::{copy as fcopy, File};
 use std::io::{copy, Error};
 use std::process::{Command, Stdio};
@@ -53,9 +52,24 @@ enum SubCommand {
     file_name: String,
   },
 
-  /// Start the web driver
-  #[clap(name = "driver")]
-  Driver {},
+  /// Query Codeforces problems.
+  #[clap(name = "problem")]
+  Problem {
+    /// Names of the tags to be queried.
+    #[clap(short = "t")]
+    tag: Vec<String>,
+    /// Names of the tags to be queried.
+    #[clap(short = "p")]
+    problemset_name: Option<String>,
+  },
+
+  /// Query Codeforces users.
+  #[clap(name = "user")]
+  User {
+    /// Names of the users to be queried.
+    #[clap(short = "n")]
+    username: Vec<String>,
+  },
 }
 
 #[tokio::main]
@@ -94,8 +108,8 @@ async fn main() -> Result<(), Error> {
         .expect("failed to open input file");
       copy(&mut file, child.stdin.as_mut().unwrap()).expect("failed to copy input");
       let output = child.wait_with_output().unwrap();
-
-      println!("{}", String::from_utf8(output.stdout).unwrap());
+      let output = String::from_utf8(output.stdout).unwrap();
+      println!("{}", output);
     }
 
     SubCommand::Commit { file_name } => {
@@ -105,15 +119,28 @@ async fn main() -> Result<(), Error> {
       ));
     }
 
-    SubCommand::Driver {} => webdriver::init(),
-
     SubCommand::Submit { file_name } => {
-      // let cf_key = env::var("CODEFORCES_API_KEY");
-      // let cf_secret = env::var("CODEFORCES_API_SECRET");
-      let mut cf = codeforces::create_client();
+      let mut cf = webdriver::init().await;
       cf.login().await.expect("cannot login");
       cf.submit(file_name).await.expect("submit error");
       cf.exit().await.expect("exit with error");
+    }
+
+    SubCommand::Problem {
+      tag,
+      problemset_name,
+    } => {
+      let tags = match tag.len() {
+        0 => None,
+        _ => Some(tag.join(";").to_string()),
+      };
+      codeforces::get_problemset_problems(tags, problemset_name)
+        .expect("failed to query problemset.problems");
+    }
+
+    SubCommand::User { username } => {
+      let handles = username.join(";");
+      codeforces::get_user_info(&handles).expect("failed to query user.info");
     }
   }
 
