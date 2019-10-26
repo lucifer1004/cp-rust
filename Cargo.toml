@@ -10,3 +10,6 @@ autobins = true
 
 [dependencies]
 clap = { git = "https://github.com/clap-rs/clap" }
+dotenv = "0.15.0"
+fantoccini = "0.12.0-alpha.4"
+tokio = "0.2.0-alpha.6" 

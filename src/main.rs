@@ -1,8 +1,13 @@
+use std::env;
 use std::fs::{copy as fcopy, File};
 use std::io::{copy, Error};
 use std::process::{Command, Stdio};
 
 use clap::Clap;
+use dotenv::dotenv;
+
+mod codeforces;
+mod webdriver;
 
 /// Handy commands for competitive programming in rust.
 #[derive(Clap)]
@@ -40,9 +45,22 @@ enum SubCommand {
     /// Name of the file to be added and created.
     file_name: String,
   },
+
+  /// Submit to Codeforces
+  #[clap(name = "submit")]
+  Submit {
+    /// Name of the file to be submitted.
+    file_name: String,
+  },
+
+  /// Start the web driver
+  #[clap(name = "driver")]
+  Driver {},
 }
 
-fn main() -> Result<(), Error> {
+#[tokio::main]
+async fn main() -> Result<(), Error> {
+  dotenv().ok();
   let opts: Opts = Opts::parse();
 
   match opts.subcmd {
@@ -54,7 +72,8 @@ fn main() -> Result<(), Error> {
         fcopy(
           format!("src/templates/{}.rs", template),
           format!("src/bin/{}.rs", file_name),
-        )?;
+        )
+        .expect("failed to create file");
       }
     }
 
@@ -67,10 +86,13 @@ fn main() -> Result<(), Error> {
         .arg(format!("cargo run --bin {}", file_name))
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())
-        .spawn()?;
+        .spawn()
+        .expect("failed to execute file");
 
-      let mut file = File::open(test_file).ok().expect("failed to open file");
-      copy(&mut file, child.stdin.as_mut().unwrap())?;
+      let mut file = File::open(test_file)
+        .ok()
+        .expect("failed to open input file");
+      copy(&mut file, child.stdin.as_mut().unwrap()).expect("failed to copy input");
       let output = child.wait_with_output().unwrap();
 
       println!("{}", String::from_utf8(output.stdout).unwrap());
@@ -81,6 +103,17 @@ fn main() -> Result<(), Error> {
         "git add ./src/bin/{}.rs && git commit -m \"{}\"",
         file_name, file_name
       ));
+    }
+
+    SubCommand::Driver {} => webdriver::init(),
+
+    SubCommand::Submit { file_name } => {
+      // let cf_key = env::var("CODEFORCES_API_KEY");
+      // let cf_secret = env::var("CODEFORCES_API_SECRET");
+      let mut cf = codeforces::create_client();
+      cf.login().await.expect("cannot login");
+      cf.submit(file_name).await.expect("submit error");
+      cf.exit().await.expect("exit with error");
     }
   }
 
