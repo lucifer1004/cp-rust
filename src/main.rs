@@ -121,10 +121,13 @@ async fn main() -> Result<(), Error> {
     }
 
     SubCommand::Commit { file_name } => {
-      Command::new("sh").arg("-c").arg(format!(
-        "git add ./src/bin/{}.rs && git commit -m \"{}\"",
-        file_name, file_name
-      ));
+      Command::new("git")
+        .arg("add")
+        .arg(format!("./src/bin/{}.rs", file_name));
+      Command::new("git")
+        .arg("commit")
+        .arg("-m")
+        .arg(format!("{}", file_name));
     }
 
     SubCommand::Submit { file_name } => {
