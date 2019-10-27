@@ -164,7 +164,7 @@ pub fn get_user_info(handles: &str) -> Result<(), Box<dyn Error>> {
   Ok(())
 }
 
-pub async fn get_blog_entry(number: u32) -> Result<(), Box<dyn Error>> {
+pub fn get_blog_entry(number: u32) -> Result<(), Box<dyn Error>> {
   let resp: CodeforcesResponse<BlogEntry> = reqwest::get(&format!(
     "https://codeforces.com/api/blogEntry.view?blogEntryId={}",
     number
