@@ -27,9 +27,9 @@ struct User {
   rating: i32,
   max_rank: String,
   max_rating: i32,
-  last_online_time_seconds: u64,
-  registration_time_seconds: u64,
-  friend_of_count: u64,
+  last_online_time_seconds: u32,
+  registration_time_seconds: u32,
+  friend_of_count: u32,
   avatar: String,
   title_photo: String,
 }
@@ -65,16 +65,25 @@ struct ProblemQueryResult {
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct ProblemQueryResponse {
-  status: String,
-  result: ProblemQueryResult,
+struct BlogEntry {
+  id: u32,
+  original_locale: String,
+  creation_time_seconds: u32,
+  author_handle: String,
+  title: String,
+  content: String,
+  locale: String,
+  modification_time_seconds: u32,
+  allow_view_history: bool,
+  tags: Vec<String>,
+  rating: i32,
 }
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
-struct UserQueryResponse {
+struct CodeforcesResponse<T> {
   status: String,
-  result: Vec<User>,
+  result: T,
 }
 
 impl Session {
@@ -138,16 +147,27 @@ pub fn get_problemset_problems(
 
   let client = reqwest::Client::new();
 
-  let resp: ProblemQueryResponse = client.get(query).form(&params).send()?.json()?;
+  let resp: CodeforcesResponse<ProblemQueryResult> =
+    client.get(query).form(&params).send()?.json()?;
 
   println!("{:?}", resp);
   Ok(())
 }
 
 pub fn get_user_info(handles: &str) -> Result<(), Box<dyn Error>> {
-  let resp: UserQueryResponse = reqwest::get(&format!(
+  let resp: CodeforcesResponse<Vec<User>> = reqwest::get(&format!(
     "https://codeforces.com/api/user.info?handles={}",
     handles
+  ))?
+  .json()?;
+  println!("{:?}", resp);
+  Ok(())
+}
+
+pub async fn get_blog_entry(number: u32) -> Result<(), Box<dyn Error>> {
+  let resp: CodeforcesResponse<BlogEntry> = reqwest::get(&format!(
+    "https://codeforces.com/api/blogEntry.view?blogEntryId={}",
+    number
   ))?
   .json()?;
   println!("{:?}", resp);

@@ -70,6 +70,14 @@ enum SubCommand {
     #[clap(short = "n")]
     username: Vec<String>,
   },
+
+  /// Query Codeforces blogs.
+  #[clap(name = "blog")]
+  Blog {
+    /// Number of the blog.
+    #[clap(short = "n")]
+    number: u32,
+  },
 }
 
 #[tokio::main]
@@ -141,6 +149,10 @@ async fn main() -> Result<(), Error> {
     SubCommand::User { username } => {
       let handles = username.join(";");
       codeforces::get_user_info(&handles).expect("failed to query user.info");
+    }
+
+    SubCommand::Blog { number } => {
+      codeforces::get_blog_entry(number).expect("failed to query blogEntry.view");
     }
   }
 

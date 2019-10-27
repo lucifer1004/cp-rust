@@ -14,14 +14,20 @@ pub async fn init() -> Session {
 
   let mut driver_ready = false;
   for (_pid, process) in system.get_process_list() {
-    if process.name() == "geckodriver" {
+    if process.name().contains("geckodriver") {
       driver_ready = true;
       break;
     }
   }
 
   if !driver_ready {
-    Command::new("./third/geckodriver")
+    let gecko_binary: &str;
+    if cfg!(target_os = "linux") {
+      gecko_binary = "./third/geckodriver";
+    } else {
+      gecko_binary = "./third/geckodriver-mac";
+    }
+    Command::new(gecko_binary)
       .spawn()
       .expect("failed to start web driver");
   }
