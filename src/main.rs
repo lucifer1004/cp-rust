@@ -1,9 +1,11 @@
 use std::fs::{copy as fcopy, File};
 use std::io::{copy, Error};
+use std::path::Path;
 use std::process::{Command, Stdio};
 
 use clap::Clap;
 use dotenv::dotenv;
+use git2::{Config, ObjectType, Repository, Signature};
 
 mod codeforces;
 mod webdriver;
@@ -121,13 +123,41 @@ async fn main() -> Result<(), Error> {
     }
 
     SubCommand::Commit { file_name } => {
-      Command::new("git")
-        .arg("add")
-        .arg(format!("./src/bin/{}.rs", file_name));
-      Command::new("git")
-        .arg("commit")
-        .arg("-m")
-        .arg(format!("{}", file_name));
+      let repo = Repository::open(&Path::new(".")).expect("failed to open repository");
+      let mut index = repo.index().expect("failed to get index");
+      let path = format!("src/bin/{}.rs", file_name);
+      let path = Path::new(&path);
+      index.add_path(path).expect("failed to add file");
+      let oid = index.write_tree().expect("failed to write index");
+
+      let cfg = Config::open_default().expect("failed to open default git config");
+      let name = cfg.get_entry("user.name").unwrap();
+      let name = name.value().unwrap();
+      let email = cfg.get_entry("user.email").unwrap();
+      let email = email.value().unwrap();
+      let sig = Signature::now(name, email).unwrap();
+
+      let obj = repo
+        .head()
+        .unwrap()
+        .resolve()
+        .unwrap()
+        .peel(ObjectType::Commit)
+        .unwrap();
+      let parent_commit = obj.into_commit().unwrap();
+
+      let tree = repo.find_tree(oid).unwrap();
+
+      repo
+        .commit(
+          Some("HEAD"),
+          &sig,
+          &sig,
+          &file_name,
+          &tree,
+          &[&parent_commit],
+        )
+        .expect("failed to commit");
     }
 
     SubCommand::Submit { file_name } => {
