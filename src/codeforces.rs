@@ -132,7 +132,7 @@ impl Session {
   }
 }
 
-pub fn get_problemset_problems(
+pub async fn get_problemset_problems(
   tags: Option<String>,
   problemset_name: Option<String>,
 ) -> Result<(), Box<dyn Error>> {
@@ -148,28 +148,32 @@ pub fn get_problemset_problems(
   let client = reqwest::Client::new();
 
   let resp: CodeforcesResponse<ProblemQueryResult> =
-    client.get(query).form(&params).send()?.json()?;
+    client.get(query).form(&params).send().await?.json().await?;
 
   println!("{:?}", resp);
   Ok(())
 }
 
-pub fn get_user_info(handles: &str) -> Result<(), Box<dyn Error>> {
+pub async fn get_user_info(handles: &str) -> Result<(), Box<dyn Error>> {
   let resp: CodeforcesResponse<Vec<User>> = reqwest::get(&format!(
     "https://codeforces.com/api/user.info?handles={}",
     handles
-  ))?
-  .json()?;
+  ))
+  .await?
+  .json()
+  .await?;
   println!("{:?}", resp);
   Ok(())
 }
 
-pub fn get_blog_entry(number: u32) -> Result<(), Box<dyn Error>> {
+pub async fn get_blog_entry(number: u32) -> Result<(), Box<dyn Error>> {
   let resp: CodeforcesResponse<BlogEntry> = reqwest::get(&format!(
     "https://codeforces.com/api/blogEntry.view?blogEntryId={}",
     number
-  ))?
-  .json()?;
+  ))
+  .await?
+  .json()
+  .await?;
   println!("{:?}", resp);
   Ok(())
 }

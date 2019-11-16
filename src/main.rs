@@ -176,16 +176,21 @@ async fn main() -> Result<(), Error> {
         _ => Some(tag.join(";").to_string()),
       };
       codeforces::get_problemset_problems(tags, problemset_name)
+        .await
         .expect("failed to query problemset.problems");
     }
 
     SubCommand::User { username } => {
       let handles = username.join(";");
-      codeforces::get_user_info(&handles).expect("failed to query user.info");
+      codeforces::get_user_info(&handles)
+        .await
+        .expect("failed to query user.info");
     }
 
     SubCommand::Blog { number } => {
-      codeforces::get_blog_entry(number).expect("failed to query blogEntry.view");
+      codeforces::get_blog_entry(number)
+        .await
+        .expect("failed to query blogEntry.view");
     }
   }
 
