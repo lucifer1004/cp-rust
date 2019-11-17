@@ -1,6 +1,11 @@
-use std::{collections::HashMap, env, error::Error, fs, thread, time};
+use std::{
+  collections::{BTreeMap, HashMap},
+  env,
+  error::Error,
+  fs, thread, time,
+};
 
-use data_encoding::HEXUPPER;
+use data_encoding::HEXLOWER;
 use fantoccini::Locator;
 use rand::distributions::Alphanumeric;
 use rand::prelude::*;
@@ -178,7 +183,7 @@ pub async fn get_blog_entry(number: u32) -> Result<(), Box<dyn Error>> {
   Ok(())
 }
 
-pub fn sign(method: String) -> String {
+pub fn sign(method: String, params: HashMap<String, String>) -> String {
   let cf_key = env::var("CODEFORCES_API_KEY").unwrap();
   let cf_secret = env::var("CODEFORCES_API_SECRET").unwrap();
   let rng = rand::thread_rng();
@@ -186,25 +191,28 @@ pub fn sign(method: String) -> String {
   let current_time = time::SystemTime::now()
     .duration_since(time::UNIX_EPOCH)
     .expect("failed to get system time");
+  let mut sorted_params = BTreeMap::new();
+  for (param, value) in params {
+    sorted_params.insert(param.to_string(), value.to_string());
+  }
+  sorted_params.insert("apiKey".to_string(), cf_key);
+  sorted_params.insert("time".to_string(), format!("{:?}", current_time.as_secs()));
+  let mut param_list = Vec::new();
+  for (param, value) in sorted_params {
+    param_list.push(format!("{}={}", param, value));
+  }
+  let param_string = param_list.join("&");
   let raw = format!(
-    "{}/{}?apiKey={}&time={:?}#{}",
-    &rand_string,
-    &method,
-    &cf_key,
-    current_time.as_secs(),
-    &cf_secret
+    "{}/{}?{}#{}",
+    &rand_string, &method, &param_string, &cf_secret
   );
 
   let mut context = Context::new(&SHA512);
   context.update(raw.as_bytes());
-  let hash = HEXUPPER.encode(context.finish().as_ref());
+  let hash = HEXLOWER.encode(context.finish().as_ref());
   format!(
-    "https://codeforces.com/api/{}?apiKey={}&time={:?}&apiSig={}{}",
-    &method,
-    &cf_key,
-    current_time.as_secs(),
-    &rand_string,
-    &hash
+    "https://codeforces.com/api/{}?{}&apiSig={}{}",
+    &method, &param_string, &rand_string, &hash
   )
 }
 
@@ -216,7 +224,9 @@ mod tests {
   #[test]
   fn test_sign() {
     dotenv().ok();
-    let digest = sign("problemset.problems".to_string());
+    let mut params = HashMap::new();
+    params.insert("contestId".to_string(), "566".to_string());
+    let digest = sign("contest.hacks".to_string(), params);
     println!("{:?}", digest);
   }
 }
