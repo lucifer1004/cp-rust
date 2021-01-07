@@ -13,7 +13,7 @@ pub async fn init() -> Session {
   system.refresh_all();
 
   let mut driver_ready = false;
-  for (_pid, process) in system.get_process_list() {
+  for (_pid, process) in system.get_processes() {
     if process.name().contains("geckodriver") {
       driver_ready = true;
       break;

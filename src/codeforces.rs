@@ -76,7 +76,7 @@ struct BlogEntry {
   creation_time_seconds: u32,
   author_handle: String,
   title: String,
-  content: String,
+  content: Option<String>,
   locale: String,
   modification_time_seconds: u32,
   allow_view_history: bool,
