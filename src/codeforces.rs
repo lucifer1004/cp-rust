@@ -120,7 +120,7 @@ impl Session {
 
       let filename = format!("src/bin/{}.rs", problem);
       let code = fs::read_to_string(filename).expect("failed to read from file");
-      let mut code_area = c.find(Locator::Css("#sourceCodeTextarea")).await?;
+      let mut code_area = c.find(Locator::Css(".ace_text-input")).await?;
       code_area.send_keys(&code).await?;
 
       f.submit().await?;
