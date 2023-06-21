@@ -9,7 +9,7 @@ autobins = true
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-clap = "3.0.0-beta.2"
+clap = "3.2.25"
 data-encoding = "2"
 dotenv = "0.15"
 fantoccini = "0.15"
