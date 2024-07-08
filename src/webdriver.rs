@@ -1,42 +1,54 @@
 use std::process::Command;
 
-use fantoccini::Client;
-use sysinfo::{ProcessExt, SystemExt};
+use fantoccini::{Client, ClientBuilder};
+use sysinfo::System;
 
 #[derive(Clone)]
 pub struct Session {
-  pub client: Option<Client>,
+    pub client: Option<Client>,
 }
 
 pub async fn init() -> Session {
-  let mut system = sysinfo::System::new();
-  system.refresh_all();
+    let mut system = System::new();
+    system.refresh_all();
 
-  let mut driver_ready = false;
-  for (_pid, process) in system.get_processes() {
-    if process.name().contains("geckodriver") {
-      driver_ready = true;
-      break;
+    for (_pid, process) in system.processes() {
+        if process.name().contains("geckodriver") {
+            process.kill();
+        }
     }
-  }
 
-  if !driver_ready {
-    let gecko_binary: &str;
-    if cfg!(target_os = "linux") {
-      gecko_binary = "./third/geckodriver";
+    let target_os = if cfg!(target_os = "linux") {
+        "linux"
+    } else if cfg!(target_os = "windows") {
+        "windows"
     } else {
-      gecko_binary = "./third/geckodriver-mac";
-    }
-    Command::new(gecko_binary)
-      .spawn()
-      .expect("failed to start web driver");
-  }
+        "macos"
+    };
 
-  Session {
-    client: Some(
-      Client::new("http://localhost:4444")
-        .await
-        .expect("failed to connect to WebDriver"),
-    ),
-  }
+    let target_arch = if cfg!(target_arch = "x86_64") {
+        "x86_64"
+    } else {
+        "aarch64"
+    };
+
+    let gecko_binary = format!(
+        "./third/geckodriver-{}-{}{}",
+        target_os,
+        target_arch,
+        if target_os == "windows" { ".exe" } else { "" }
+    );
+
+    Command::new(gecko_binary)
+        .spawn()
+        .expect("failed to start web driver");
+
+    Session {
+        client: Some(
+            ClientBuilder::native()
+                .connect("http://localhost:4444")
+                .await
+                .expect("failed to connect to WebDriver"),
+        ),
+    }
 }

@@ -3,7 +3,7 @@ use std::io::{copy, Error};
 use std::path::Path;
 use std::process::{Command, Stdio};
 
-use clap::Clap;
+use clap::{Parser, Subcommand};
 use dotenv::dotenv;
 use git2::{Config, ObjectType, Repository, Signature};
 
@@ -11,14 +11,14 @@ mod codeforces;
 mod webdriver;
 
 /// Handy commands for competitive programming in rust.
-#[derive(Clap)]
-#[clap(version = "0.1.0", author = "Zihua Wu <wuzihua@pku.edu.cn>")]
+#[derive(Parser)]
+#[command(version = "0.1.0", author = "Zihua Wu <wuzihua@pku.edu.cn>")]
 struct Opts {
-    #[clap(subcommand)]
+    #[command(subcommand)]
     subcmd: SubCommand,
 }
 
-#[derive(Clap)]
+#[derive(Subcommand)]
 enum SubCommand {
     /// Create a new source file from a template file.
     #[clap(name = "new")]
@@ -82,7 +82,6 @@ enum SubCommand {
     },
 }
 
-
 #[tokio::main]
 async fn main() -> Result<(), Error> {
     dotenv().ok();
@@ -98,7 +97,7 @@ async fn main() -> Result<(), Error> {
                     format!("src/templates/{}.rs", template),
                     format!("src/bin/{}.rs", file_name),
                 )
-                    .expect("failed to create file");
+                .expect("failed to create file");
             }
         }
 
@@ -149,16 +148,15 @@ async fn main() -> Result<(), Error> {
 
             let tree = repo.find_tree(oid).unwrap();
 
-            repo
-                .commit(
-                    Some("HEAD"),
-                    &sig,
-                    &sig,
-                    &file_name,
-                    &tree,
-                    &[&parent_commit],
-                )
-                .expect("failed to commit");
+            repo.commit(
+                Some("HEAD"),
+                &sig,
+                &sig,
+                &file_name,
+                &tree,
+                &[&parent_commit],
+            )
+            .expect("failed to commit");
         }
 
         SubCommand::Submit { file_name } => {
