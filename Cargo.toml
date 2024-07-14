@@ -12,7 +12,7 @@ autobins = true
 clap = { version = "4", features = ["derive"] }
 data-encoding = "2"
 dotenv = "0.15"
-fantoccini = "0.19"
+fantoccini = "0.21"
 git2 = "0.19"
 rand = "0.8"
 reqwest = { version = "0.12", features = ["json"] }
