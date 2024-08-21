@@ -2,7 +2,7 @@ use std::{
     collections::{BTreeMap, HashMap},
     env,
     error::Error,
-    fs, thread, time,
+    fs, time,
 };
 
 use data_encoding::HEXLOWER;
@@ -31,10 +31,10 @@ struct User {
     city: Option<String>,
     organization: Option<String>,
     contribution: i32,
-    rank: String,
-    rating: i32,
-    max_rank: String,
-    max_rating: i32,
+    rank: Option<String>,
+    rating: Option<i32>,
+    max_rank: Option<String>,
+    max_rating: Option<i32>,
     last_online_time_seconds: u32,
     registration_time_seconds: u32,
     friend_of_count: u32,
@@ -91,7 +91,8 @@ struct BlogEntry {
 #[serde(rename_all = "camelCase")]
 struct CodeforcesResponse<T> {
     status: String,
-    result: T,
+    result: Option<T>,
+    comment: Option<String>,
 }
 
 impl Session {

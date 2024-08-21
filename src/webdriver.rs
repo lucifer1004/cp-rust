@@ -13,7 +13,7 @@ pub async fn init() -> Session {
     system.refresh_all();
 
     for (_pid, process) in system.processes() {
-        if process.name().contains("geckodriver") {
+        if process.name().to_string_lossy().contains("geckodriver") {
             process.kill();
         }
     }

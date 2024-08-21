@@ -12,13 +12,13 @@ autobins = true
 clap = { version = "4", features = ["derive"] }
 data-encoding = "2"
 dotenv = "0.15"
-fantoccini = "0.19"
+fantoccini = "0.21"
 git2 = "0.19"
 rand = "0.8"
 reqwest = { version = "0.12", features = ["json"] }
 ring = "0.17.0-alpha.8"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
-sysinfo = "0.30"
+sysinfo = "0.31"
 tokio = { version = "1", features = ["full"] }
 url = "2"
